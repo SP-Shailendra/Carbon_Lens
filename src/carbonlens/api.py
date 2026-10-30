@@ -12,6 +12,7 @@ from fastapi.security import APIKeyHeader
 
 from .agent import AnalysisError, analyze_usage
 from .config import Settings
+from .data.cloud_exports import CloudExportError, CloudProvider, normalize_cloud_export
 from .data.export import report_csv
 from .emissions.factors import EMISSION_FACTORS, REGISTRY_INFO, USAGE_PROFILES, load_factor_file
 from .models.schemas import AnalysisReport, FunnelEvent, RecommendationFeedback, ReportListItem
@@ -61,7 +62,8 @@ def create_app(config: Settings | None = None) -> FastAPI:
             "max_rows": 50_000,
             "max_recommendations": 3,
             "configured_factors": len(EMISSION_FACTORS),
-            "ai_available": config.llm_provider == "openai" and bool(config.llm_api_key),
+            "ai_available": config.llm_provider.lower() in {"openai", "groq"}
+            and bool(config.llm_api_key),
             "executes_cloud_changes": False,
             "sample_profiles": ["mixed", "aws-electricity-2023"],
             "methodology_version": "2",
@@ -96,9 +98,21 @@ def create_app(config: Settings | None = None) -> FastAPI:
         store.event(payload.report_id or "", payload.name)
         return {"recorded": True}
 
-    def build_report(content: bytes, top_n: int, use_ai: bool, data_origin: str = "uploaded"):
+    def build_report(
+        content: bytes,
+        top_n: int,
+        use_ai: bool,
+        data_origin: str = "uploaded",
+        export_provider: CloudProvider | None = None,
+    ):
         analysis_id = str(uuid4())
         store.event(analysis_id, "upload_submitted")
+        import_warnings: list[str] = []
+        if export_provider:
+            try:
+                content, import_warnings = normalize_cloud_export(content, export_provider)
+            except CloudExportError as error:
+                raise HTTPException(status_code=422, detail=str(error)) from error
         try:
             report = analyze_usage(content, top_n)
         except AnalysisError as error:
@@ -110,6 +124,7 @@ def create_app(config: Settings | None = None) -> FastAPI:
                 0,
                 "Synthetic sample activity, not measured customer usage or evidence of real-world impact.",
             )
+        report["warnings"].extend(import_warnings)
         if use_ai and report["recommendations"]:
             try:
                 labels = explain_hotspots(report["recommendations"], config)
@@ -152,6 +167,36 @@ def create_app(config: Settings | None = None) -> FastAPI:
         finally:
             await file.close()
         return await run_in_threadpool(build_report, content, top_n, use_ai)
+
+    @application.post(
+        "/api/v1/analyses/exports",
+        response_model=AnalysisReport,
+        status_code=201,
+        dependencies=protected,
+        tags=["Agent"],
+    )
+    async def analyze_export(
+        file: Annotated[
+            UploadFile,
+            File(description="AWS CUR, Azure Cost Management, or GCP Billing CSV"),
+        ],
+        provider: Literal["aws", "azure", "gcp"],
+        top_n: Annotated[int, Query(ge=1, le=3)] = 3,
+        use_ai: bool = False,
+    ):
+        try:
+            if not (file.filename or "").lower().endswith(".csv"):
+                raise HTTPException(status_code=415, detail="Upload a provider export .csv file.")
+            content = await file.read(config.max_upload_mb * 1024 * 1024 + 1)
+            if len(content) > config.max_upload_mb * 1024 * 1024:
+                raise HTTPException(
+                    status_code=413, detail=f"Upload exceeds {config.max_upload_mb} MB."
+                )
+        finally:
+            await file.close()
+        return await run_in_threadpool(
+            build_report, content, top_n, use_ai, "provider_export", provider
+        )
 
     @application.post(
         "/api/v1/analyses/sample",

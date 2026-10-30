@@ -22,10 +22,19 @@ def explain_hotspots(
     computed_results: list[dict[str, Any]], config: Settings | None = None
 ) -> list[dict[str, Any]]:
     config = config or Settings()
-    if config.llm_provider != "openai" or not config.llm_api_key:
+    providers = {
+        "openai": ("https://api.openai.com/v1/chat/completions", "gpt-4o-mini"),
+        "groq": (
+            "https://api.groq.com/openai/v1/chat/completions",
+            "llama-3.3-70b-versatile",
+        ),
+    }
+    provider = config.llm_provider.lower()
+    if provider not in providers or not config.llm_api_key:
         raise ValueError(
-            "Configure LLM_PROVIDER=openai and LLM_API_KEY to enable AI action labels."
+            "Configure LLM_PROVIDER=openai or groq and LLM_API_KEY to enable AI action labels."
         )
+    endpoint, default_model = providers[provider]
     payload = [
         {
             "id": item["id"],
@@ -36,10 +45,10 @@ def explain_hotspots(
     ]
     with httpx.Client(timeout=20) as client:
         response = client.post(
-            "https://api.openai.com/v1/chat/completions",
+            endpoint,
             headers={"Authorization": f"Bearer {config.llm_api_key}"},
             json={
-                "model": config.llm_model,
+                "model": config.llm_model or default_model,
                 "temperature": 0,
                 "max_tokens": 500,
                 "response_format": {"type": "json_object"},

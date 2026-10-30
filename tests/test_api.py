@@ -48,6 +48,13 @@ def test_health_and_auth(client):
     assert client.get("/api/v1/config").json()["executes_cloud_changes"] is False
 
 
+@pytest.mark.parametrize("provider", ["openai", "groq"])
+def test_ai_available_for_supported_provider(config, provider):
+    config = replace(config, llm_provider=provider, llm_api_key="test-not-a-real-key")
+    with TestClient(create_app(config), headers={"X-API-Key": "test-key"}) as client:
+        assert client.get("/api/v1/config").json()["ai_available"] is True
+
+
 def test_sample_report_persisted(client, config):
     response = client.post("/api/v1/analyses/sample")
     assert response.status_code == 201
@@ -59,6 +66,24 @@ def test_sample_report_persisted(client, config):
     assert client.get("/api/v1/analyses").json()[0]["id"] == report["id"]
     with TestClient(create_app(config), headers={"X-API-Key": "test-key"}) as restarted:
         assert restarted.get(f"/api/v1/analyses/{report['id']}").status_code == 200
+
+
+def test_gcp_billing_export_upload_creates_cost_only_report(client):
+    content = (
+        "service.description,location.region,usage_start_time,usage_end_time,cost,currency\n"
+        "Cloud Storage,us-central1,2026-10-01T00:00:00Z,2026-10-02T00:00:00Z,8.25,USD\n"
+    )
+    response = client.post(
+        "/api/v1/analyses/exports",
+        params={"provider": "gcp"},
+        files={"file": ("billing.csv", content, "text/csv")},
+    )
+    assert response.status_code == 201
+    report = response.json()
+    assert report["data_origin"] == "provider_export"
+    assert report["summary"]["estimated_rows"] == 0
+    assert report["summary"]["not_estimated_rows"] == 1
+    assert report["rows"][0]["data_basis"] == "cost_only"
 
 
 def test_grounded_estimate_and_idempotent_decision(client, config, factor):
@@ -329,6 +354,17 @@ def test_expired_factor_not_estimated(client, factor, monkeypatch):
 
 
 @pytest.mark.parametrize(
+    ("provider", "endpoint", "model"),
+    [
+        ("openai", "https://api.openai.com/v1/chat/completions", "gpt-4o-mini"),
+        (
+            "groq",
+            "https://api.groq.com/openai/v1/chat/completions",
+            "llama-3.3-70b-versatile",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
     "content",
     [
         '{"recommendations":[{"id":"hotspot-1","action":"review_schedule"}]}',
@@ -338,7 +374,7 @@ def test_expired_factor_not_estimated(client, factor, monkeypatch):
         "not json",
     ],
 )
-def test_ai_schema_and_minimal_payload(content, monkeypatch):
+def test_ai_schema_and_minimal_payload(content, monkeypatch, provider, endpoint, model):
     import httpx
 
     from carbonlens.recommendations.llm_explainer import explain_hotspots
@@ -349,14 +385,24 @@ def test_ai_schema_and_minimal_payload(content, monkeypatch):
     def respond(request):
         import json
 
-        captured.append(json.loads(request.content))
+        captured.append(
+            {
+                "url": str(request.url),
+                "body": json.loads(request.content),
+                "authorization": request.headers.get("authorization"),
+            }
+        )
         return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
 
     monkeypatch.setattr(
         "carbonlens.recommendations.llm_explainer.httpx.Client",
         lambda **kwargs: original_client(transport=httpx.MockTransport(respond)),
     )
-    config = Settings(llm_provider="openai", llm_api_key="test-not-a-real-key")
+    config = Settings(
+        llm_provider=provider,
+        llm_api_key="test-not-a-real-key",
+        llm_model="",
+    )
     recommendation = {
         "id": "hotspot-1",
         "estimated_kg_co2e": 60,
@@ -368,4 +414,7 @@ def test_ai_schema_and_minimal_payload(content, monkeypatch):
     else:
         with pytest.raises(ValueError):
             explain_hotspots([recommendation], config)
-    assert "private" not in str(captured)
+    assert captured[0]["url"] == endpoint
+    assert captured[0]["body"]["model"] == model
+    assert captured[0]["authorization"] == "Bearer test-not-a-real-key"
+    assert "private" not in str(captured[0]["body"])

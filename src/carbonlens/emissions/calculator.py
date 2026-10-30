@@ -61,6 +61,10 @@ def finish(low: float, central: float, high: float, **metadata: Any) -> Estimate
 
 def estimate_row(row: pd.Series) -> EstimateResult:
     basis = text(row, "data_basis", "usage_only").lower()
+    if basis == "cost_only":
+        return not_estimated(
+            "Billing export contains cost but no supported usage quantity and unit; emissions are not inferred from spend."
+        )
     if basis == "provider_reported":
         try:
             central = float(row["provider_kg_co2e"])

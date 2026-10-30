@@ -59,6 +59,15 @@ with st.sidebar:
     else:
         st.badge("API offline", icon=":material/cloud_off:", color="red")
     with st.form("analysis_parameters"):
+        upload_format = st.selectbox(
+            "CSV format",
+            [
+                "CarbonLens template",
+                "AWS CUR",
+                "Azure Cost Management",
+                "GCP Billing export",
+            ],
+        )
         uploaded = st.file_uploader(
             "Cloud usage CSV", type=["csv"], max_upload_size=config.max_upload_mb
         )
@@ -79,11 +88,21 @@ with st.sidebar:
         if uploaded is None:
             st.error("Choose a CSV file first.")
         else:
-            with st.spinner("Validating and analyzing usage..."):
+            export_providers = {
+                "AWS CUR": "aws",
+                "Azure Cost Management": "azure",
+                "GCP Billing export": "gcp",
+            }
+            provider = export_providers.get(upload_format)
+            endpoint = "/api/v1/analyses/exports" if provider else "/api/v1/analyses"
+            parameters: dict[str, int | bool | str] = {"top_n": top_n, "use_ai": use_ai}
+            if provider:
+                parameters["provider"] = provider
+            with st.spinner("Validating and analyzing usage export..."):
                 report = request_api(
                     "POST",
-                    "/api/v1/analyses",
-                    params={"top_n": top_n, "use_ai": use_ai},
+                    endpoint,
+                    params=parameters,
                     files={"file": (uploaded.name, uploaded.getvalue(), "text/csv")},
                 )
             if report:

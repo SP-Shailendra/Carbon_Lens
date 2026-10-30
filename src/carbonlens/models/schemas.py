@@ -128,7 +128,7 @@ class AnalysisReport(BaseModel):
     id: str
     methodology_version: str = "1"
     registry_version: str | None = None
-    data_origin: Literal["uploaded", "synthetic_sample", "unknown"] = "unknown"
+    data_origin: Literal["uploaded", "provider_export", "synthetic_sample", "unknown"] = "unknown"
     created_at: str
     summary: AnalysisSummary
     rows: list[UsageEstimate]

@@ -32,11 +32,13 @@ def validate_usage_frame(frame: pd.DataFrame) -> ValidationResult:
         else pd.Series("usage_only", index=frame.index)
     )
     reported = basis.eq("provider_reported")
-    required = (
-        REQUIRED_COLUMNS - {"usage_quantity", "usage_unit"}
-        if reported.all() and len(frame)
-        else REQUIRED_COLUMNS
-    )
+    usage_only = basis.eq("usage_only")
+    cost_only = basis.eq("cost_only")
+    required = REQUIRED_COLUMNS - {"usage_quantity", "usage_unit"}
+    if usage_only.any():
+        required |= {"usage_quantity", "usage_unit"}
+    if cost_only.any():
+        required |= {"cost_amount", "currency"}
     missing = sorted(required - set(frame.columns))
     if missing:
         errors.append(f"Missing required columns: {', '.join(missing)}")
@@ -46,9 +48,9 @@ def validate_usage_frame(frame: pd.DataFrame) -> ValidationResult:
         errors.append("CSV must contain at least one usage row.")
     if len(frame) > 50_000:
         errors.append("CSV exceeds the 50,000-row limit.")
-    if not basis.isin({"usage_only", "provider_reported"}).all():
-        errors.append("data_basis must be usage_only or provider_reported.")
-    usage = frame.loc[~reported]
+    if not basis.isin({"usage_only", "provider_reported", "cost_only"}).all():
+        errors.append("data_basis must be usage_only, provider_reported, or cost_only.")
+    usage = frame.loc[usage_only]
     numeric = pd.to_numeric(usage.get("usage_quantity", pd.Series(dtype=float)), errors="coerce")
     if not numeric.map(lambda value: pd.notna(value) and math.isfinite(value)).all():
         errors.append("usage_quantity must contain finite numeric values.")
@@ -144,5 +146,10 @@ def validate_usage_frame(frame: pd.DataFrame) -> ValidationResult:
                 errors.append(
                     "currency must be a three-letter uppercase code when cost_amount is provided."
                 )
+        if cost_only.any() and not supplied[cost_only].all():
+            errors.append("cost_only rows require a cost_amount and currency.")
+
+    if cost_only.any():
+        warnings.append("Cost-only rows are retained but emissions are not inferred from spend.")
 
     return ValidationResult(not errors, errors, warnings)

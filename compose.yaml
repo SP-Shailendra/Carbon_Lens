@@ -11,7 +11,7 @@ services:
       EMISSION_FACTORS_PATH: ${EMISSION_FACTORS_PATH:-}
       LLM_PROVIDER: ${LLM_PROVIDER:-}
       LLM_API_KEY: ${LLM_API_KEY:-}
-      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_MODEL: ${LLM_MODEL:-}
     volumes:
       - reports:/app/.local
     healthcheck:

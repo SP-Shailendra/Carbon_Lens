@@ -1,3 +1,4 @@
+import os
 import subprocess
 import tomllib
 from pathlib import Path
@@ -42,8 +43,34 @@ def test_release_metadata_and_api_version_match():
     assert config["project"]["version"] == "0.1.0"
     assert create_app().version == config["project"]["version"]
     assert config["project"]["license"] == "LicenseRef-Proprietary"
-    for filename in ("LICENSE", "CHANGELOG.md", "CONTRIBUTING.md", ".github/workflows/ci.yml"):
+    for filename in ("LICENSE", ".github/workflows/ci.yml"):
         assert (ROOT / filename).is_file()
+
+
+def test_readme_is_the_only_project_markdown_document():
+    generated_directories = {
+        ".git",
+        ".local",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".venv",
+        "venv",
+        "__pycache__",
+    }
+    markdown_files: list[str] = []
+    for current, directories, filenames in os.walk(ROOT):
+        directories[:] = [
+            name
+            for name in directories
+            if name not in generated_directories and not name.endswith(".egg-info")
+        ]
+        markdown_files.extend(
+            (Path(current) / name).relative_to(ROOT).as_posix()
+            for name in filenames
+            if name.lower().endswith(".md")
+        )
+    assert markdown_files == ["README.md"]
 
 
 def test_maintained_text_files_use_lf():

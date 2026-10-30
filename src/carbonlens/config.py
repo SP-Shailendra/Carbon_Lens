@@ -26,7 +26,7 @@ class Settings:
     factors_path: str = field(default_factory=lambda: os.getenv("EMISSION_FACTORS_PATH", ""))
     llm_provider: str = field(default_factory=lambda: os.getenv("LLM_PROVIDER", ""))
     llm_api_key: str = field(default_factory=lambda: os.getenv("LLM_API_KEY", ""))
-    llm_model: str = field(default_factory=lambda: os.getenv("LLM_MODEL", "gpt-4o-mini"))
+    llm_model: str = field(default_factory=lambda: os.getenv("LLM_MODEL", ""))
 
     def __post_init__(self):
         if not 1 <= self.max_upload_mb <= 100:

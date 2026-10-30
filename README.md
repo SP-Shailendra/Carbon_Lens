@@ -42,6 +42,82 @@ Cloud bills show resource usage and cost, but do not always make it easy to iden
 - SQLite for reports, human decisions, and privacy-minimized local funnel events
 - pytest for automated tests, Ruff for lint/format checks, mypy for static type checking
 
+## Architecture and Flow
+
+The dashboard sends normalized CSVs directly to the API. Provider-export CSVs first pass through a provider-specific normalizer. The API validates rows, applies only compatible factors, builds deterministic hotspots, optionally requests bounded action labels from Groq or OpenAI, and stores the report and human decisions in SQLite. Cloud data is uploaded by the user; there is no scheduled sync or direct cloud-account connection.
+
+```mermaid
+flowchart LR
+    User[User]
+    Dashboard[Streamlit dashboard]
+    API[FastAPI API]
+    Normalizer[Provider CSV normalizer]
+    Validator[Schema and usage validation]
+    Analyzer[Deterministic emissions and hotspot analysis]
+    Registry[(Versioned factor registry)]
+    LLM[Optional Groq or OpenAI action labels]
+    Store[(SQLite reports, decisions, and events)]
+
+    User --> Dashboard
+    Dashboard -->|Normalized CSV| API
+    Dashboard -->|AWS, Azure, or GCP export CSV| API
+    API -->|Provider export only| Normalizer
+    Normalizer --> Validator
+    API -->|Normalized CSV| Validator
+    Validator --> Analyzer
+    Registry --> Analyzer
+    Analyzer --> API
+    API -. use_ai enabled .-> LLM
+    LLM -. validated labels only .-> API
+    API --> Store
+    Store --> API
+    API -->|Report and provenance| Dashboard
+    User -->|Approve or reject| Dashboard
+    Dashboard -->|Decision| API
+```
+
+```mermaid
+flowchart TD
+    Start[Choose a CSV and submit]
+    Type{CSV format?}
+    Normalize[Normalize supported provider columns]
+    Validate[Validate schema, dates, units, and values]
+    Valid{Valid input?}
+    Errors[Return actionable validation errors]
+    Estimate[Estimate only supported usage rows]
+    Rank[Rank supported hotspots]
+    AI{AI labels enabled and hotspots available?}
+    Labels[Request bounded labels from Groq or OpenAI]
+    Check[Validate returned IDs and allowed actions]
+    Deterministic[Keep deterministic labels]
+    Save[Save report, provenance, and warnings]
+    Review[User reviews results]
+    Decision{Approve or reject?}
+    Record[Persist decision only]
+    Done[Finish]
+
+    Start --> Type
+    Type -->|AWS, Azure, or GCP export| Normalize
+    Type -->|Normalized CarbonLens CSV| Validate
+    Normalize --> Validate
+    Validate --> Valid
+    Valid -->|No| Errors
+    Errors --> Done
+    Valid -->|Yes| Estimate
+    Estimate --> Rank
+    Rank --> AI
+    AI -->|Yes| Labels
+    Labels --> Check
+    Check --> Save
+    AI -->|No| Deterministic
+    Deterministic --> Save
+    Save --> Review
+    Review --> Decision
+    Decision -->|Yes| Record
+    Decision -->|No| Done
+    Record --> Done
+```
+
 ## Repository structure
 
 ```text

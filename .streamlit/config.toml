@@ -1,0 +1,19 @@
+[theme]
+base = "light"
+primaryColor = "#197b59"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f2f5f4"
+textColor = "#242b28"
+borderColor = "#d7dfdc"
+font = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+headingFont = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+baseRadius = "0.375rem"
+buttonRadius = "0.375rem"
+chartCategoricalColors = ["#197b59", "#cc694b", "#d1a437", "#398ab4"]
+showSidebarBorder = true
+
+[server]
+maxUploadSize = 10
+
+[browser]
+gatherUsageStats = false

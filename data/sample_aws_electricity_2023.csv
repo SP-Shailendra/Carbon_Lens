@@ -1,0 +1,4 @@
+provider,service,region,usage_quantity,usage_unit,period_start,period_end,energy_basis,energy_source
+aws,compute,us-east-1,120,kWh,2023-10-01,2023-10-31,facility,SYNTHETIC facility-energy allocation - not measured customer data
+aws,compute,us-east-1,80,kWh,2023-11-01,2023-11-30,facility,SYNTHETIC facility-energy allocation - not measured customer data
+aws,compute,us-east-1,40,kWh,2023-12-01,2023-12-31,facility,SYNTHETIC facility-energy allocation - not measured customer data

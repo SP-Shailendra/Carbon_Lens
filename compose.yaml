@@ -1,0 +1,38 @@
+services:
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:8001:8001"
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      CARBONLENS_API_KEY: ${CARBONLENS_API_KEY:-}
+      DATABASE_PATH: /app/.local/carbonlens.db
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+      EMISSION_FACTORS_PATH: ${EMISSION_FACTORS_PATH:-}
+      LLM_PROVIDER: ${LLM_PROVIDER:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+    volumes:
+      - reports:/app/.local
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+  dashboard:
+    build: .
+    command: ["python", "-m", "streamlit", "run", "app.py", "--server.address", "0.0.0.0", "--server.port", "8501", "--server.headless", "true"]
+    ports:
+      - "127.0.0.1:8501:8501"
+    environment:
+      CARBONLENS_API_URL: http://api:8001
+      CARBONLENS_PUBLIC_API_URL: ${CARBONLENS_PUBLIC_API_URL:-http://127.0.0.1:8001}
+      CARBONLENS_API_KEY: ${CARBONLENS_API_KEY:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  reports:

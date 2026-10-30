@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      APP_ENV: development
+      EMISSION_FACTORS_PATH: ""
+      LLM_PROVIDER: ""
+      LLM_API_KEY: ""
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: "false"
+    steps:
+      # Official action refs and Python matrix docs checked 2026-10-27:
+      # https://github.com/actions/checkout/tree/v6
+      # https://github.com/actions/setup-python/tree/v6
+      # https://docs.github.com/en/actions/use-cases-and-examples/building-and-testing/building-and-testing-python
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            pyproject.toml
+      - name: Install development dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Check dependency consistency
+        run: python -m pip check
+      - name: Lint
+        run: python -m ruff check .
+      - name: Check formatting
+        run: python -m ruff format --check .
+      - name: Type-check
+        run: python -m mypy
+      - name: Test backend and repository contracts
+        run: python -m pytest -q -m "not ui" --strict-markers
+      # Headless AppTest uses an in-process API; no browser, live server, or secrets.
+      # https://docs.streamlit.io/develop/concepts/app-testing/get-started (accessed 2026-10-27)
+      - name: Test Streamlit UI
+        run: python -m pytest -q -m ui --strict-markers

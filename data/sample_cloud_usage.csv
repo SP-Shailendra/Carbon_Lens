@@ -1,0 +1,4 @@
+provider,service,region,usage_quantity,usage_unit,period_start,period_end,cost_amount,currency
+aws,compute,us-east-1,120,vCPU-hour,2026-10-01,2026-10-31,18.50,USD
+azure,storage,eastus,250,GB-month,2026-10-01,2026-10-31,5.25,USD
+gcp,compute,us-central1,80,vCPU-hour,2026-10-01,2026-10-31,12.00,USD

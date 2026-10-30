@@ -1,0 +1,89 @@
+{
+  "schema_version": 2,
+  "registry_version": "2026.10.27",
+  "factors": [
+    {
+      "factor_id": "epa-egrid2023-rev2-serc-facility-electricity",
+      "provider": "aws",
+      "service": "compute",
+      "region": "us-east-1",
+      "input_unit": "kWh",
+      "value": 0.3651339384,
+      "unit": "kgCO2e/kWh",
+      "source_name": "US EPA eGRID2023 metric workbook, revision 2",
+      "source_url": "https://www.epa.gov/system/files/documents/2025-06/egrid2023_data_metric_rev2.xlsx",
+      "access_date": "2026-10-26",
+      "geography": "SERC NERC region; proxy for AWS us-east-1",
+      "valid_from": "2023-01-01",
+      "valid_to": "2023-12-31",
+      "version": "2025-06-12; NRL23/SERC/NRC2ERTA",
+      "required_energy_basis": "facility",
+      "method": "location_based",
+      "verified": true,
+      "notes": "365.1339384 kg CO2e/MWh divided by 1000. Annual generation-output proxy, not AWS-reported emissions. Requires attributable facility kWh including cooling overhead and an energy_source reference; no additional PUE. Excludes embodied emissions, upstream fuel emissions and grid losses. AWS-to-SERC mapping: https://www.cloudcarbonfootprint.org/docs/methodology/. Historical direct-energy entry remains restricted to 2023."
+    },
+    {
+      "factor_id": "ccf-aws-us-east-1-grid-proxy-v2", "provider": "aws", "service": "*", "region": "us-east-1", "input_unit": "kWh",
+      "value": 0.365127796, "unit": "kgCO2e/kWh", "source_name": "Cloud Carbon Footprint Appendix V / EPA eGRID2023 derived factor",
+      "source_url": "https://www.cloudcarbonfootprint.org/docs/methodology/", "access_date": "2026-10-27", "data_year": 2023,
+      "geography": "SERC annual regional proxy for AWS Northern Virginia", "valid_from": "2023-01-01", "valid_to": "2026-12-31",
+      "version": "CCF methodology snapshot 2026-10-27", "factor_kind": "grid", "method": "location_based", "verified": true,
+      "notes": "CCF Appendix V publishes 0.000365127796 metric tons/kWh; multiply by 1000 for kg. Historical annual proxy applied through model year 2026, not verified 2026 grid conditions. Model application window is not a scientific validity guarantee. Different from the retained primary EPA direct-energy reference; do not silently substitute."
+    },
+    {
+      "factor_id": "ccf-azure-eastus-grid-proxy-v2", "provider": "azure", "service": "*", "region": "eastus", "input_unit": "kWh",
+      "value": 0.379069, "unit": "kgCO2e/kWh", "source_name": "Cloud Carbon Footprint Appendix V Azure East US",
+      "source_url": "https://www.cloudcarbonfootprint.org/docs/methodology/", "access_date": "2026-10-27",
+      "geography": "Virginia / SERC; normalized eastus alias for CCF East US", "valid_from": "2023-01-01", "valid_to": "2026-12-31",
+      "version": "CCF methodology snapshot 2026-10-27", "factor_kind": "grid", "method": "location_based", "verified": true,
+      "notes": "Published CCF Azure East US factor 0.000379069 metric tons/kWh converted to kg. Underlying source vintage is unspecified in this table; data_year is deliberately absent. Historical geographic proxy only; not verified 2026 Azure grid data. Dates are the model application window."
+    },
+    {
+      "factor_id": "google-2025-us-central1-grid-v2", "provider": "gcp", "service": "*", "region": "us-central1", "input_unit": "kWh",
+      "value": 0.432, "unit": "kgCO2e/kWh", "source_name": "Google Cloud 2025 regional grid carbon intensity",
+      "source_url": "https://cloud.google.com/sustainability/region-carbon", "access_date": "2026-10-27", "data_year": 2025,
+      "geography": "Iowa, Google Cloud us-central1", "valid_from": "2025-01-01", "valid_to": "2026-12-31",
+      "version": "2025 data, page updated 2026-10-26", "factor_kind": "grid", "method": "location_based", "verified": true,
+      "notes": "432 gCO2eq/kWh divided by 1000. Gross operational grid intensity, no CFE discount. Latest-available 2025 proxy used for 2026 scenarios; application dates do not certify 2026 grid conditions."
+    },
+    {
+      "factor_id": "google-2025-asia-south1-grid-v2", "provider": "gcp", "service": "*", "region": "asia-south1", "input_unit": "kWh",
+      "value": 0.598, "unit": "kgCO2e/kWh", "source_name": "Google Cloud 2025 regional grid carbon intensity",
+      "source_url": "https://cloud.google.com/sustainability/region-carbon", "access_date": "2026-10-27", "data_year": 2025,
+      "geography": "Mumbai, India, Google Cloud asia-south1", "valid_from": "2025-01-01", "valid_to": "2026-12-31",
+      "version": "2025 data, page updated 2026-10-26", "factor_kind": "grid", "method": "location_based", "verified": true,
+      "notes": "598 gCO2eq/kWh divided by 1000. No CFE discount. Latest-available historical proxy for 2026 model scenarios, not measured 2026 emissions. Not transferable to AWS or Azure India regions."
+    },
+    {
+      "factor_id": "google-2025-asia-south2-grid-v2", "provider": "gcp", "service": "*", "region": "asia-south2", "input_unit": "kWh",
+      "value": 0.473, "unit": "kgCO2e/kWh", "source_name": "Google Cloud 2025 regional grid carbon intensity",
+      "source_url": "https://cloud.google.com/sustainability/region-carbon", "access_date": "2026-10-27", "data_year": 2025,
+      "geography": "Delhi, India, Google Cloud asia-south2", "valid_from": "2025-01-01", "valid_to": "2026-12-31",
+      "version": "2025 data, page updated 2026-10-26", "factor_kind": "grid", "method": "location_based", "verified": true,
+      "notes": "473 gCO2eq/kWh divided by 1000. No CFE discount. Latest-available historical proxy for 2026 model scenarios, not measured 2026 emissions. Not transferable to AWS or Azure India regions."
+    }
+  ],
+  "usage_profiles": [
+    {
+      "profile_id": "ccf-aws-screening-v2", "provider": "aws", "min_watts": 0.74, "max_watts": 3.5, "central_utilization": 0.5,
+      "hdd_wh_per_tb_hour": 0.65, "ssd_wh_per_tb_hour": 1.2, "pue": 1.135,
+      "source_url": "https://www.cloudcarbonfootprint.org/docs/methodology/", "access_date": "2026-10-27",
+      "valid_from": "2020-01-01", "valid_to": "2026-12-31", "geography": "CCF generic AWS fleet model; not workload measurement", "method": "location_based", "verified": true,
+      "notes": "Compute/Storage/PUE sections and Appendix I. CCF AWS PUE is itself a published assumption, not current measured fleet PUE. Model application window only."
+    },
+    {
+      "profile_id": "ccf-azure-screening-v2", "provider": "azure", "min_watts": 0.78, "max_watts": 3.76, "central_utilization": 0.5,
+      "hdd_wh_per_tb_hour": 0.65, "ssd_wh_per_tb_hour": 1.2, "pue": 1.185,
+      "source_url": "https://www.cloudcarbonfootprint.org/docs/methodology/", "access_date": "2026-10-27",
+      "valid_from": "2020-01-01", "valid_to": "2026-12-31", "geography": "CCF generic Azure fleet model; not workload measurement", "method": "location_based", "verified": true,
+      "notes": "Uses the explicitly stated 1.185 in CCF Power Usage Effectiveness section; Appendix I instead lists 1.125. This documented source conflict is unresolved and affects accuracy. Not a current measured Azure fleet PUE. Model application window only."
+    },
+    {
+      "profile_id": "ccf-gcp-screening-v2", "provider": "gcp", "min_watts": 0.71, "max_watts": 4.26, "central_utilization": 0.5,
+      "hdd_wh_per_tb_hour": 0.65, "ssd_wh_per_tb_hour": 1.2, "pue": 1.1,
+      "source_url": "https://www.cloudcarbonfootprint.org/docs/methodology/", "access_date": "2026-10-27",
+      "valid_from": "2020-01-01", "valid_to": "2026-12-31", "geography": "CCF generic GCP fleet model; not workload measurement", "method": "location_based", "verified": true,
+      "notes": "Compute/Storage/PUE sections and Appendix I. Generic CCF coefficients, not a contemporary per-site efficiency measurement. Model application window only."
+    }
+  ]
+}
